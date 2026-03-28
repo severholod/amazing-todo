@@ -10,15 +10,15 @@ type User struct {
 	ID          int
 	Version     int
 	FullName    string
-	PhoneNumber *string
+	PhoneNumber string
 }
 
-func NewUserUninitialized(fullName string, phoneNumber *string) User {
+func NewUserUninitialized(fullName string, phoneNumber string) User {
 	return NewUser(UninitializedID, UninitializedVersion, fullName, phoneNumber)
 
 }
 
-func NewUser(id int, version int, fullName string, phoneNumber *string) User {
+func NewUser(id int, version int, fullName string, phoneNumber string) User {
 	return User{
 		FullName:    fullName,
 		PhoneNumber: phoneNumber,
@@ -36,7 +36,7 @@ func (u *User) Validate() error {
 			core_errors.ErrInvalidArgument,
 		)
 	}
-	phoneNumberLen := len([]rune(*u.PhoneNumber))
+	phoneNumberLen := len([]rune(u.PhoneNumber))
 	if phoneNumberLen < 10 || phoneNumberLen > 15 {
 		return fmt.Errorf(
 			"invalid `PhoneNumber` length: %d: %w",
@@ -45,12 +45,50 @@ func (u *User) Validate() error {
 		)
 	}
 	regex := regexp.MustCompile(`^\+[0-9]+$`)
-	if !regex.MatchString(*u.PhoneNumber) {
+	if !regex.MatchString(u.PhoneNumber) {
 		return fmt.Errorf(
 			"invalid `PhoneNumber` format: %w",
 			core_errors.ErrInvalidArgument,
 		)
 	}
+
+	return nil
+}
+
+type UserPatch struct {
+	FullName    Nullable[string]
+	PhoneNumber Nullable[string]
+}
+
+func (p *UserPatch) Validate() error {
+	if (p.FullName.Set && p.FullName.Value == nil) || (p.PhoneNumber.Set && p.PhoneNumber.Value == nil) {
+		return fmt.Errorf(
+			"Fields 'FullName' and 'PhoneNumber' can`t be patched to NULL :%w:",
+			core_errors.ErrInvalidArgument,
+		)
+	}
+
+	return nil
+}
+
+func (u *User) ApplyPatch(patch UserPatch) error {
+	if err := patch.Validate(); err != nil {
+		return fmt.Errorf("validate user patch: %w", err)
+	}
+
+	tmp := *u
+
+	if patch.FullName.Set {
+		tmp.FullName = *patch.FullName.Value
+	}
+	if patch.PhoneNumber.Set {
+		tmp.PhoneNumber = *patch.PhoneNumber.Value
+	}
+
+	if err := tmp.Validate(); err != nil {
+		return fmt.Errorf("validate user patch: %w", err)
+	}
+	*u = tmp
 
 	return nil
 }
