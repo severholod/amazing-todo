@@ -15,6 +15,7 @@ type UsersRepository interface {
 	) (domain.User, error)
 	GetUsers(ctx context.Context, limit *int, offset *int) ([]domain.User, error)
 	GetUser(ctx context.Context, id int) (domain.User, error)
+	DeleteUser(ctx context.Context, id int) error
 }
 
 func NewUsersService(usersRepository UsersRepository) *UsersService {
