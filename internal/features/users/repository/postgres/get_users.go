@@ -9,7 +9,6 @@ import (
 func (r *UsersRepository) GetUsers(ctx context.Context, limit *int, offset *int) ([]domain.User, error) {
 	ctx, cancel := context.WithTimeout(ctx, r.pool.OpTimeout())
 	defer cancel()
-
 	query := `
 	SELECT id, version, full_name, phone_number
 	FROM todoapp.users
@@ -38,9 +37,10 @@ func (r *UsersRepository) GetUsers(ctx context.Context, limit *int, offset *int)
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("next rows: %w", err)
 	}
-	userDomains := make([]domain.User, len(userModels))
+	userDomains := make([]domain.User, 0, len(userModels))
 	for _, userModel := range userModels {
 		userDomains = append(userDomains, domain.NewUser(userModel.ID, userModel.Version, userModel.FullName, userModel.PhoneNumber))
 	}
+
 	return userDomains, nil
 }
